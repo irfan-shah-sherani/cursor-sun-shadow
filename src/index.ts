@@ -39,18 +39,18 @@ export class CursorSunShadow {
 
     this.options = Object.assign({
       elements: '.shadowed',
-      minBlur: 2,
-      maxBlur: 50,
-      minSpread: -2,
-      maxSpread: 8,
-      minAlpha: 0.1,
-      maxAlpha: 0.45,
-      maxOffset: 60,
+      minBlur: 10,         // Dropped slightly for pin-sharp close-ups
+      maxBlur: 40,        // Increased for a more dramatic distant blur
+      minSpread: -5,      // Tighter squeeze when close
+      maxSpread: 20,       // Wider expansion when far
+      minAlpha: 0.1,     // Fades out more naturally at a distance
+      maxAlpha: 0.4,      // Darker, rich shadow when right overhead
+      maxOffset: 70,
       maxDistance: null,
       color: '0,0,0',
       inset: false,
       ease: 0.15,
-      multiLayer: false,
+      multiLayer: true,   // Enabled by default because it handles real-world shadow depths significantly better
       onUpdate: null
     }, options) as Required<CursorSunShadowOptions>;
 
@@ -66,8 +66,8 @@ export class CursorSunShadow {
     this._tick = this._tick.bind(this);
     
     if (isBrowser) {
-        this.start(); 
-      }
+      this.start(); 
+    }
   }
 
   private _resolveElements(input: any): Element[] {
@@ -117,22 +117,39 @@ export class CursorSunShadow {
       const dy = cy - this.mouseY;
       const dist = Math.hypot(dx, dy);
 
+      // Base linear factor (0 at center, 1 at max distance)
       const t = Math.min(dist / maxDist, 1);
 
+      // --- NON-LINEAR PHYSICS MATH ---
+      
+      // 1. Blur: Square root curve causes it to blur out rapidly as it pulls away,
+      // but drops aggressively to pin-sharp (minBlur) when right next to the center.
+      const blurFactor = Math.sqrt(t); 
+      const blur = this._lerp(o.minBlur, o.maxBlur, blurFactor);
+
+      // 2. Alpha (Opacity): Stays punchy/dark near the center, 
+      // then rapidly diffuses/fades as the distance increases.
+      const alphaFactor = 1 - Math.pow(1 - t, 2);
+      const alpha = this._lerp(o.minAlpha, o.maxAlpha, alphaFactor);
+
+      // 3. Spread: Exponential growth so it keeps a tight silhouette close-up
+      const spreadFactor = Math.pow(t, 1.5);
+      const spread = this._lerp(o.minSpread, o.maxSpread, spreadFactor);
+
+      // 4. Directional Offset
       const offsetX = (dx / (dist || 1)) * t * o.maxOffset;
       const offsetY = (dy / (dist || 1)) * t * o.maxOffset;
 
-      const blur = this._lerp(o.minBlur, o.maxBlur, t);
-      const spread = this._lerp(o.minSpread, o.maxSpread, t);
-      const alpha = this._lerp(o.minAlpha, o.maxAlpha, t);
-
+      // --- CSS RENDERING ---
       const insetStr = o.inset ? 'inset ' : '';
       let shadow = `${insetStr}${offsetX.toFixed(2)}px ${offsetY.toFixed(2)}px ${blur.toFixed(2)}px ${spread.toFixed(2)}px rgba(${o.color},${alpha.toFixed(3)})`;
 
       if (o.multiLayer) {
-        const blur2 = blur * 0.4;
-        const alpha2 = Math.min(alpha * 1.4, 1);
-        shadow += `, ${insetStr}${(offsetX * 0.4).toFixed(2)}px ${(offsetY * 0.4).toFixed(2)}px ${blur2.toFixed(2)}px 0px rgba(${o.color},${alpha2.toFixed(3)})`;
+        // Real light features an ultra-sharp, high-contrast core shadow beneath the object.
+        // We simulate this with an optimized sharper secondary layer.
+        const blur2 = blur * 0.25; 
+        const alpha2 = Math.min(alpha * 1.6, 1); 
+        shadow += `, ${insetStr}${(offsetX * 0.3).toFixed(2)}px ${(offsetY * 0.3).toFixed(2)}px ${blur2.toFixed(2)}px 0px rgba(${o.color},${alpha2.toFixed(3)})`;
       }
 
       if (typeof o.onUpdate === 'function') {
