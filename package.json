@@ -1,0 +1,24 @@
+{
+  "name": "cursor-sun-shadow",
+  "version": "1.0.0",
+  "description": "Makes elements cast a dynamic shadow based on cursor position.",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "shadow",
+    "cursor",
+    "ui",
+    "animation",
+    "3d-effect"
+  ],
+  "author": "irfan khan",
+  "license": "MIT"
+}

@@ -1,0 +1,11 @@
+# Ignore dependencies (they make the repo too heavy)
+node_modules/
+
+# Ignore the build output folder on GitHub 
+# (GitHub Actions will build this fresh in the cloud!)
+dist/
+
+# Ignore local environment/log files
+.npmrc
+*.log
+.DS_Store
