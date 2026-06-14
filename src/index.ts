@@ -23,7 +23,7 @@ export interface CursorSunShadowOptions {
 }
 
 export class CursorSunShadow {
-  public options: Required<CursorSunShadowOptions>;
+  private options: Required<CursorSunShadowOptions>;
   public elements: Element[];
   private mouseX: number;
   private mouseY: number;
@@ -38,19 +38,19 @@ export class CursorSunShadow {
     const isBrowser = typeof window !== 'undefined';
 
     this.options = Object.assign({
-      elements: '.shadowed',
-      minBlur: 10,         // Dropped slightly for pin-sharp close-ups
-      maxBlur: 40,        // Increased for a more dramatic distant blur
-      minSpread: -5,      // Tighter squeeze when close
-      maxSpread: 20,       // Wider expansion when far
-      minAlpha: 0.1,     // Fades out more naturally at a distance
-      maxAlpha: 0.4,      // Darker, rich shadow when right overhead
+      elements: '.dynamic-shadow',
+      minBlur: 2,
+      maxBlur: 40,
+      minSpread: -4,
+      maxSpread: 18,
+      minAlpha: 0.06,
+      maxAlpha: 0.36,
       maxOffset: 70,
       maxDistance: null,
       color: '0,0,0',
       inset: false,
-      ease: 0.15,
-      multiLayer: true,   // Enabled by default because it handles real-world shadow depths significantly better
+      ease: 0.12,
+      multiLayer: true,
       onUpdate: null
     }, options) as Required<CursorSunShadowOptions>;
 
@@ -68,6 +68,43 @@ export class CursorSunShadow {
     if (isBrowser) {
       this.start(); 
     }
+  }
+
+  // Read-only accessors for commonly-needed option values
+  public get elementsOption(): CursorSunShadowOptions['elements'] {
+    return this.options.elements;
+  }
+
+  public get colorOption(): string {
+    return this.options.color;
+  }
+
+  public get minBlurOption(): number {
+    return this.options.minBlur;
+  }
+
+  public get maxBlurOption(): number {
+    return this.options.maxBlur;
+  }
+
+  public get minSpreadOption(): number {
+    return this.options.minSpread;
+  }
+
+  public get maxSpreadOption(): number {
+    return this.options.maxSpread;
+  }
+
+  public get minAlphaOption(): number {
+    return this.options.minAlpha;
+  }
+
+  public get maxAlphaOption(): number {
+    return this.options.maxAlpha;
+  }
+
+  public get maxOffsetOption(): number {
+    return this.options.maxOffset;
   }
 
   private _resolveElements(input: any): Element[] {
@@ -193,7 +230,15 @@ export class CursorSunShadow {
   }
 
   public updateOptions(newOptions: CursorSunShadowOptions = {}) {
-    Object.assign(this.options, newOptions);
+    // Prevent certain internal-only options from being changed externally.
+    const blocked: (keyof CursorSunShadowOptions)[] = ['color', 'inset', 'ease', 'multiLayer', 'onUpdate'];
+    const safe: Partial<CursorSunShadowOptions> = {};
+    Object.keys(newOptions).forEach(key => {
+      if (!blocked.includes(key as keyof CursorSunShadowOptions)) {
+        (safe as any)[key] = (newOptions as any)[key];
+      }
+    });
+    Object.assign(this.options, safe);
   }
 
   public addElements(els: any) {
